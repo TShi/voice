@@ -1,16 +1,4 @@
-from sys import byteorder
-from array import array
-from struct import pack
-import glob
-import numpy as np
-import pyaudio
-import wave
-import re,sys
-from sklearn.cluster import KMeans
-THRESHOLD = 500
-CHUNK_SIZE = 1024
-FORMAT = pyaudio.paInt16
-RATE = 44100
+from utils import *
 
 def is_silent(snd_data):
 	"Returns 'True' if below the 'silent' threshold"
@@ -58,6 +46,7 @@ def record():
 			if num_periods <= 50:
 				print "Too short, resampling"
 				snd_started = False
+				r = array('h')
 				num_periods = 0
 				continue
 			else:
@@ -67,7 +56,7 @@ def record():
 		elif not silent and snd_started: # okay
 			r.extend(normalize(snd_data))
 			num_periods += 1
-			print num_periods
+			print num_periods,len(r)
 		else: # sound just started
 			print "Start recording"
 			snd_started = True
@@ -78,13 +67,6 @@ def record():
 	stream.close()
 	p.terminate()
 	return sample_width, r
-
-def chunks(l, n):
-    """ Yield successive n-sized chunks from l.
-    """
-    for i in xrange(0, len(l), n):
-    	if i+n <= len(l):
-	        yield l[i:i+n]
 
 def findmax(label):
 	largest = -1

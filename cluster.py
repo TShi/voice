@@ -1,25 +1,4 @@
-import scipy.io.wavfile
-import scipy.signal
-
-import numpy as np
-import matplotlib.pyplot as plt
-import glob
-import os
-from matplotlib.mlab import find
-from record import *
-from scipy.signal import blackmanharris, fftconvolve
-from numpy.fft import rfft, irfft
-
-from numpy import argmax, sqrt, mean, diff, log
-from classify import parabolic, freq_from_autocorr, freq_from_fft,interp1d
-def chunks(l, n):
-    """ Yield successive n-sized chunks from l.
-    """
-    for i in xrange(0, len(l), n):
-    	if i+n <= len(l):
-	        yield l[i:i+n]
-
-F_RANGE = np.arange(0,10000)
+from utils import *
 
 def get_features(label):
 	BASE_FREQ = 250.
@@ -36,6 +15,20 @@ def get_features(label):
 		features=f(F_RANGE)
 		yield features
 
+def get_features_2(label):
+	fs,y=scipy.io.wavfile.read(filename)
+	label = filename[8:-4]
+	fund_freq = freq_from_autocorr(y,fs)
+	# fund_freq_2 = freq_from_fft(y,fs)
+	# okay = fund_freq < fund_freq_2 * 1.2 and fund_freq_2 < fund_freq * 1.2
+	for yy in chunks(y, RATE * 1/2):
+		f,Pxx_den=scipy.signal.periodogram(y,fs=fs)
+		f_interp = interp1d(f, Pxx_den)
+		features = []
+		for i in range(1,51):
+			features.append(np.log(1+f_interp(fund_freq*i)))
+		yield features
+
 
 
 X = []
@@ -43,7 +36,7 @@ y = []
 for filename in glob.glob("samples/*.wav"):
 	label = filename[8:-4]
 	person,num = label.split("_")
-	for features in get_features(label):
+	for features in get_features_2(label):
 		X.append(features)
 		# y.append(1 if person == 'ts' else 0)
 		y.append(person)
@@ -61,7 +54,7 @@ from sklearn.decomposition import PCA
 # pca = PCA(n_components=50)
 # logX_pca = pca.fit_transform(logX)
 # from sklearn.cluster import KMeans
-kmeans = KMeans(n_clusters=2)
+kmeans = KMeans(n_clusters=4)
 y_pred = kmeans.fit_predict(logX)
 from collections import Counter
 from itertools import groupby
