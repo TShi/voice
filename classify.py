@@ -89,9 +89,6 @@ def get_features_20(fs,signal):
 # 		# if os.path.isfile("spectra/%s.pdf"%label): continue
 # 		plot_features(label)
 
-def flatten(l): return [item for sublist in l for item in sublist]
-
-from sklearn.svm import SVC
 
 print "Preparing features"
 X = []

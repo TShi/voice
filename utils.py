@@ -19,12 +19,17 @@ from numpy import argmax, sqrt, mean, diff, log
 
 from scipy.interpolate import interp1d
 
+from sklearn.svm import SVC
+
 THRESHOLD = 500
 CHUNK_SIZE = 1024
 FORMAT = pyaudio.paInt16
 RATE = 44100
 
 F_RANGE = np.arange(0,5000)
+
+def flatten(l): return [item for sublist in l for item in sublist]
+
 
 def chunks(l, n):
     """ Yield successive n-sized chunks from l.
