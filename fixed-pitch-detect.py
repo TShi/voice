@@ -55,13 +55,17 @@ def record():
 	p.terminate()
 	return sample_width, r
 
-execfile("classify.py")
+execfile("fixed-pitch-classify.py")
 
 clf.fit(np.concatenate((X_train,X_test)), np.concatenate((y_train,y_test)))
 
 while True:
+    label = raw_input("Who are you? Enter your label:   ")
+    if (os.path.isfile("fixed-pitch/%s_0.wav" % label)):
+        fund_freq, fs = getFundFreq(label, 0)
+        print "Listen, here's your pitch"
+        playNote(fund_freq, fs)
+        print "Now duplicate it!"
 	for X_test in get_features_20(RATE,record()[1]):
 		y_pred = clf.predict(X_test)[0]
 		print "%s (%.2f)" % (y_pred, clf.predict_proba(X_test)[0,label_to_ind[y_pred]])
-
-

@@ -1,3 +1,4 @@
+import os
 from utils import *
 
 def is_silent(snd_data):
@@ -43,7 +44,7 @@ def record():
         # print np.mean(map(abs,snd_data)), is_silent(snd_data)
         silent = is_silent(snd_data)
         if silent and snd_started:
-            if num_periods <= 50:
+            if num_periods <= 10:
                 print "Too short, resampling"
                 snd_started = False
                 r = array('h')
@@ -70,8 +71,8 @@ def record():
 
 def findmax(label):
     largest = -1
-    for filename in glob.glob("samples/%s_*.wav" % label):
-        largest = max(largest,int(re.findall("samples/%s_(\d+).wav" % label,filename)[0]))
+    for filename in glob.glob("fixed-pitch/%s_*.wav" % label):
+        largest = max(largest,int(re.findall("fixed-pitch/%s_(\d+).wav" % label,filename)[0]))
     return largest
 
 def record_to_file_full(label):
@@ -79,12 +80,13 @@ def record_to_file_full(label):
     sample_width, data = record()
     data = pack('<' + ('h'*len(data)), *data)
     seq = findmax(label) + 1
-    wf = wave.open("samples/%s_%d.wav" % (label,seq), 'wb')
+    wf = wave.open("fixed-pitch/%s_%d.wav" % (label,seq), 'wb')
     wf.setnchannels(1)
     wf.setsampwidth(sample_width)
     wf.setframerate(RATE)
     wf.writeframes(data)
     wf.close()
+    return seq
 
 def record_to_file(label):
     "Records from the microphone and outputs the resulting data to 'path'"
@@ -100,9 +102,26 @@ def record_to_file(label):
         wf.close()
         seq += 1
 
+
+
 if __name__ == '__main__':
     label = sys.argv[1]
     print "label: %s" % label
-    print("please speak a word into the microphone")
-    record_to_file_full(label)
-    print("done - result written to %s" % label)
+    if (os.path.isfile("fixed-pitch/%s_0.wav" % label)):
+        fund_freq, fs = getFundFreq(label, 0)
+        print "Listen, here's your pitch"
+        playNote(fund_freq, fs)
+        print "Now duplicate it!"
+        seq = record_to_file_full(label)
+        new_fund_freq, _ = getFundFreq(label, seq)
+        print "Original is %f, new is %f" % (fund_freq, new_fund_freq)
+        if (fund_freq < new_fund_freq + 3) or (fund_freq > new_fund_freq - 3):
+            print "Success, sample %s_%d saved" % (label, seq)
+        else:
+            print "Failure, sample not saved"
+            os.remove("/fixed-pitch/%s_%d.wav" % (label, seq))
+
+    else:
+        print("New label! Please make a first recording.")
+        record_to_file_full(label)
+        print("done - result written to %s" % label)
