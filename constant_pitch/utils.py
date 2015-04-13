@@ -28,37 +28,10 @@ RATE = 44100
 
 F_RANGE = np.arange(0, 5000)
 
-
-def play_tone(frequency, amplitude, duration, fs, stream):
-    N = int(fs / frequency)
-    T = int(frequency * duration)  # repeat for T cycles
-    dt = 1.0 / fs
-    # 1 cycle
-    tone = (amplitude * np.sin(2 * np.pi * frequency * n * dt)
-            for n in xrange(N))
-    # todo: get the format from the stream; this assumes Float32
-    data = ''.join(pack('f', samp) for samp in tone)
-    for n in xrange(T):
-        stream.write(data)
-
-def playNote(freq, fs):
-    p = pyaudio.PyAudio()
-    stream = p.open(format=pyaudio.paFloat32,
-                    channels=1,
-                    rate=fs,
-                    output=True)
-    play_tone(freq, 0.5, 1.0, fs, stream)
-
-
-def getFundFreq(label, index):
-    fs, signal = scipy.io.wavfile.read("fixed-pitch/%s_%d.wav"
-                                       % (label, index))
-    fund_freq = freq_from_autocorr(signal, fs)
-    return fund_freq, fs
+DATA_DIR = "../../samples/"
 
 
 def flatten(l): return [item for sublist in l for item in sublist]
-
 
 def chunks(l, n):
     """ Yield successive n-sized chunks from l.
@@ -129,3 +102,7 @@ def freq_from_fft(signal, fs):
 
     # Convert to equivalent frequency
     return fs * true_i / len(windowed)
+
+
+def get_dataname(filepath):
+    return filepath.split("/")[-1].split(".")[0]

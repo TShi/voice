@@ -35,10 +35,10 @@ class VoiceManager(object):
 		self.y = []
 		self.labels = []
 		self.freqs = []
-		for filename in glob.glob("samples/*.wav"):
-			label = filename[8:-4]
+		for filename in glob.glob(DATA_DIR+"constant_pitch/*.wav"):
+			label = get_dataname(filename)
 			person,num = label.split("_")
-			fs,signal=scipy.io.wavfile.read("samples/%s.wav" % label)
+			fs,signal=scipy.io.wavfile.read(DATA_DIR+"constant_pitch/%s.wav" % label)
 			fund_freq,X = self.get_features(fs,signal)
 			if not X:
 				print "Err: %s, %.1f" % (label,fund_freq)
@@ -129,15 +129,15 @@ class Recorder(object):
 		self.p.terminate()
 	def findmax(self,label):
 		largest = -1
-		for filename in glob.glob("samples/%s_*.wav" % label):
-			largest = max(largest,int(re.findall("samples/%s_(\d+).wav" % label,filename)[0]))
+		for filename in glob.glob(DATA_DIR+"constant_pitch/%s_*.wav" % label):
+			largest = max(largest,int(re.findall(DATA_DIR+"constant_pitch/%s_(\d+).wav" % label,filename)[0]))
 		return largest
 	def save(self,signal,label):
 		"Records from the microphone and outputs the resulting data to 'path'"
 		signal = pack('<' + ('h'*len(signal)), *signal)
 		next_id = self.findmax(label) + 1
 		recording_name = "%s_%d" % (label,next_id)
-		wf = wave.open("samples/%s.wav" % recording_name, 'wb')
+		wf = wave.open(DATA_DIR+"constant_pitch/%s.wav" % recording_name, 'wb')
 		wf.setnchannels(1)
 		wf.setsampwidth(self.sample_width)
 		wf.setframerate(self.fs)

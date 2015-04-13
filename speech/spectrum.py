@@ -1,5 +1,5 @@
 from utils import *
-for filename in glob.glob("speech/*.wav"):
+for filename in glob.glob(DATA_DIR+"speech/*.wav"):
 	label=filename[7:-4]
 	print label
 	fs,y=scipy.io.wavfile.read(filename)
@@ -7,4 +7,4 @@ for filename in glob.glob("speech/*.wav"):
 	f,Pxx_den=scipy.signal.periodogram(y,fs=fs)
 	plt.clf()
 	plt.semilogy(f, Pxx_den)
-	plt.savefig("speech/%s.pdf" % (label),format="pdf")
+	plt.savefig(DATA_DIR+"speech_spectra/%s.pdf" % (label),format="pdf")

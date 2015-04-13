@@ -35,10 +35,10 @@ class VoiceManager(object):
 		self.y = []
 		self.labels = []
 		self.freqs = []
-		for filename in glob.glob("speech/*.wav"):
-			label = filename[7:-4]
+		for filename in glob.glob(DATA_DIR+"speech/*.wav"):
+			label = get_dataname(filename)
 			person,num = label.split("_")
-			fs,signal=scipy.io.wavfile.read("speech/%s.wav" % label)
+			fs,signal=scipy.io.wavfile.read(DATA_DIR+"speech/%s.wav" % label)
 			fund_freq,X = self.get_features(fs,signal)
 			if not X:
 				print "Err: %s, %.1f" % (label,fund_freq)
@@ -129,15 +129,15 @@ class Recorder(object):
 		self.p.terminate()
 	def findmax(self,label):
 		largest = -1
-		for filename in glob.glob("speech/%s_*.wav" % label):
-			largest = max(largest,int(re.findall("speech/%s_(\d+).wav" % label,filename)[0]))
+		for filename in glob.glob(DATA_DIR+"speech/%s_*.wav" % label):
+			largest = max(largest,int(re.findall(DATA_DIR+"speech/%s_(\d+).wav" % label,filename)[0]))
 		return largest
 	def save(self,signal,label):
 		"Records from the microphone and outputs the resulting data to 'path'"
 		signal = pack('<' + ('h'*len(signal)), *signal)
 		next_id = self.findmax(label) + 1
 		recording_name = "%s_%d" % (label,next_id)
-		wf = wave.open("speech/%s.wav" % recording_name, 'wb')
+		wf = wave.open(DATA_DIR+"speech/%s.wav" % recording_name, 'wb')
 		wf.setnchannels(1)
 		wf.setsampwidth(self.sample_width)
 		wf.setframerate(self.fs)
@@ -146,22 +146,11 @@ class Recorder(object):
 		return recording_name
 
 
-def ask_name():
-	cmd = raw_input("n - change name, Enter - continue.")
-	if cmd == 'n':
-		return raw_input("Your name: ")
-	elif cmd != "":
-		print "Unknown command"
-		return ask_name()
-	else:
-		return ""
 
 voice_manager = VoiceManager()
 recorder = Recorder()
 voice_clf = VoiceClassifier()
 voice_clf.fit(*voice_manager.get_snapshot())
-person = ask_name()
-test_mode = person == ""
 
 while True:
 	signal = recorder.record()
@@ -170,26 +159,5 @@ while True:
 		print "what?"
 		continue
 	print voice_clf.predict(X)
-
-
-# while True:
-# 	signal = recorder.record()
-# 	fund_freq,X = voice_manager.get_features(recorder.fs,signal)
-# 	print voice_clf.predict(X)
-# 	if test_mode:
-# 		cmd = raw_input("Enter /<name> to train. Enter .<name> to switch to Train mode.")
-# 		if len(cmd)>=2 and cmd[0] == "/":
-# 			voice_manager.add(recorder.fs,signal,recorder.save(signal,cmd[1:]))
-# 		elif len(cmd)>=2 and cmd[0] == ".":
-# 			test_mode = False
-# 			person = cmd[1:]
-# 			voice_manager.add(recorder.fs,signal,recorder.save(signal,person))
-# 	else: # train mode
-# 		cmd = raw_input("Enter / to Train. Enter . to switch to Test mode.")
-# 		if cmd == "/":
-# 			voice_manager.add(recorder.fs,signal,recorder.save(signal,person))
-# 		elif cmd == ".":
-# 			person = ""
-# 			test_mode = True
 
 

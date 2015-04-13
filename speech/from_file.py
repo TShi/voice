@@ -54,16 +54,16 @@ def record(filename):
 
 def findmax(label):
 	largest = -1
-	for filename in glob.glob("speech/%s_*.wav" % label):
-		largest = max(largest,int(re.findall("speech/%s_(\d+).wav" % label,filename)[0]))
+	for filename in glob.glob(DATA_DIR+"speech/%s_*.wav" % label):
+		largest = max(largest,int(re.findall(DATA_DIR+"speech/%s_(\d+).wav" % label,filename)[0]))
 	return largest
 
 
 def record_to_file(filename,label):
 	"Records from the microphone and outputs the resulting data to 'path'"
 	seq = findmax(label) + 1
-	for data_chunk in record(filename): # 1s chunks
-		wf = scipy.io.wavfile.write("speech/%s_%d.wav" % (label,seq), RATE, np.array(data_chunk,dtype="int16"))
+	for data_chunk in record(DATA_DIR+"speech_full_audio/"+filename+".wav"): # 1s chunks
+		wf = scipy.io.wavfile.write(DATA_DIR+"speech/%s_%d.wav" % (label,seq), RATE, np.array(data_chunk,dtype="int16"))
 		seq += 1
 
 if __name__ == '__main__':

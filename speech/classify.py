@@ -1,32 +1,5 @@
 from utils import *
 
-def get():
-	for filename in glob.glob("speech/*.wav"):
-		out_name = "spectra/"+filename[7:-4]
-		if os.path.isfile(out_name): continue
-		print filename
-		fs,y=scipy.io.wavfile.read(filename)
-		# Spectrum
-		f,Pxx_den=scipy.signal.periodogram(y,fs=fs)
-		okay_indices = np.where((f>30)&(f<3000))
-		f1,Pxx_den1=f[okay_indices],Pxx_den[okay_indices]
-		plt.clf()
-		plt.semilogy(f1, Pxx_den1)
-		plt.xlabel('frequency [Hz]')
-		plt.ylabel('PSD [V**2/Hz]')
-		plt.savefig(out_name+".pdf",format="pdf")
-		# # FFT
-		# fourier = abs(np.fft.fft(y))
-		# freq = np.fft.fftfreq(len(y), d=1./fs)
-		# okay_indices = np.where((f>30)&(f<3000))
-		# f2,fourier2 = freq[okay_indices],fourier[okay_indices]
-		# plt.clf()
-		# plt.semilogy(f2, fourier2)
-		# plt.xlabel('frequency [Hz]')
-		# plt.ylabel('Coef')
-		# plt.savefig(out_name+"_f.pdf",format="pdf")
-
-
 
 def get_features(fs,signal):
 	# BASE_FREQ = 250.
@@ -65,34 +38,17 @@ def get_features_20(fs,signal):
 		features.append(np.log(1+f_interp(fund_freq*i)))
 	yield features
 
-# def plot_features(label):
-# 	count = 0
-# 	for features in get_features(label):
-# 		plt.clf()
-# 		plt.semilogy(F_RANGE, features)
-# 		# plt.plot(f_range, features)
-# 		plt.xlabel('frequency [Hz]')
-# 		plt.ylabel('PSD [V**2/Hz]')
-# 		plt.savefig("spectra/%s_%d.pdf" % (label,count),format="pdf")
-# 		count += 1
-
-# def process():
-# 	for filename in glob.glob("speech/*.wav"):
-# 		label = filename[8:-4]
-# 		# if os.path.isfile("spectra/%s.pdf"%label): continue
-# 		plot_features(label)
-
 
 print "Preparing features"
 X = []
 y = []
 frequencies = []
-for filename in glob.glob("speech/*.wav"):
-	label = filename[7:-4]
+for filename in glob.glob(DATA_DIR+"speech/*.wav"):
+	label = get_dataname(filename)
 	person,num = label.split("_")
 	features_group = [] 
 	persons_group = []
-	fs,signal=scipy.io.wavfile.read("speech/%s.wav" % label)
+	fs,signal=scipy.io.wavfile.read(DATA_DIR+"speech/%s.wav" % label)
 	fund_freq = freq_from_autocorr(signal,fs)
 	print label,fund_freq
 	frequencies.append(fund_freq)

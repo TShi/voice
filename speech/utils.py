@@ -22,7 +22,7 @@ from scipy.interpolate import interp1d
 from sklearn.svm import SVC
 
 THRESHOLD = 500
-CHUNK_SIZE = 8192
+CHUNK_SIZE = 1024
 FORMAT = pyaudio.paInt16
 RATE = 44100
 
@@ -133,3 +133,4 @@ def freq_from_fft(signal, fs):
 
 def get_dataname(filepath):
     return filepath.split("/")[-1].split(".")[0]
+

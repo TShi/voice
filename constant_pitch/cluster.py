@@ -1,8 +1,10 @@
 from utils import *
 
+# Not working
+
 def get_features(label):
 	BASE_FREQ = 250.
-	fs,y=scipy.io.wavfile.read("samples/%s.wav" % label)
+	fs,y=scipy.io.wavfile.read(DATA_DIR+"constant_pitch/%s.wav" % label)
 	fund_freq = freq_from_autocorr(y,fs)
 	fund_freq_2 = freq_from_fft(y,fs)
 	okay = fund_freq < fund_freq_2 * 1.2 and fund_freq_2 < fund_freq * 1.2
@@ -17,7 +19,7 @@ def get_features(label):
 
 def get_features_2(label):
 	fs,y=scipy.io.wavfile.read(filename)
-	label = filename[8:-4]
+	label = get_dataname(filename)
 	fund_freq = freq_from_autocorr(y,fs)
 	# fund_freq_2 = freq_from_fft(y,fs)
 	# okay = fund_freq < fund_freq_2 * 1.2 and fund_freq_2 < fund_freq * 1.2
@@ -33,8 +35,8 @@ def get_features_2(label):
 
 X = []
 y = []
-for filename in glob.glob("samples/*.wav"):
-	label = filename[8:-4]
+for filename in glob.glob(DATA_DIR+"constant_pitch/*.wav"):
+	label = get_dataname(filename)
 	person,num = label.split("_")
 	for features in get_features_2(label):
 		X.append(features)

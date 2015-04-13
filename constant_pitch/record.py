@@ -70,8 +70,8 @@ def record():
 
 def findmax(label):
     largest = -1
-    for filename in glob.glob("samples/%s_*.wav" % label):
-        largest = max(largest,int(re.findall("samples/%s_(\d+).wav" % label,filename)[0]))
+    for filename in glob.glob(DATA_DIR+"constant_pitch/%s_*.wav" % label):
+        largest = max(largest,int(re.findall(DATA_DIR+"constant_pitch/%s_(\d+).wav" % label,filename)[0]))
     return largest
 
 def record_to_file_full(label):
@@ -79,7 +79,7 @@ def record_to_file_full(label):
     sample_width, data = record()
     data = pack('<' + ('h'*len(data)), *data)
     seq = findmax(label) + 1
-    wf = wave.open("samples/%s_%d.wav" % (label,seq), 'wb')
+    wf = wave.open(DATA_DIR+"constant_pitch/%s_%d.wav" % (label,seq), 'wb')
     wf.setnchannels(1)
     wf.setsampwidth(sample_width)
     wf.setframerate(RATE)
@@ -92,7 +92,7 @@ def record_to_file(label):
     data = pack('<' + ('h'*len(data)), *data)
     seq = findmax(label) + 1
     for data_chunk in chunks(data,RATE * 1): # 1s chunks
-        wf = wave.open("samples/%s_%d.wav" % (label,seq), 'wb')
+        wf = wave.open(DATA_DIR+"constant_pitch/%s_%d.wav" % (label,seq), 'wb')
         wf.setnchannels(1)
         wf.setsampwidth(sample_width)
         wf.setframerate(RATE)
