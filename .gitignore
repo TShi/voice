@@ -1,0 +1,4 @@
+constant_pitch/*.pyc
+fixed_pitch/*.pyc
+speech/*.pyc
+.DS_Store

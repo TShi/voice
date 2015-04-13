@@ -71,8 +71,8 @@ def record():
 
 def findmax(label):
     largest = -1
-    for filename in glob.glob("fixed-pitch/%s_*.wav" % label):
-        largest = max(largest,int(re.findall("fixed-pitch/%s_(\d+).wav" % label,filename)[0]))
+    for filename in glob.glob(DATA_DIR+"fixed_pitch/%s_*.wav" % label):
+        largest = max(largest,int(re.findall(DATA_DIR+"fixed_pitch/%s_(\d+).wav" % label,filename)[0]))
     return largest
 
 def record_to_file_full(label):
@@ -80,7 +80,7 @@ def record_to_file_full(label):
     sample_width, data = record()
     data = pack('<' + ('h'*len(data)), *data)
     seq = findmax(label) + 1
-    wf = wave.open("fixed-pitch/%s_%d.wav" % (label,seq), 'wb')
+    wf = wave.open(DATA_DIR+"fixed_pitch/%s_%d.wav" % (label,seq), 'wb')
     wf.setnchannels(1)
     wf.setsampwidth(sample_width)
     wf.setframerate(RATE)
@@ -94,7 +94,7 @@ def record_to_file(label):
     data = pack('<' + ('h'*len(data)), *data)
     seq = findmax(label) + 1
     for data_chunk in chunks(data,RATE * 1): # 1s chunks
-        wf = wave.open("samples/%s_%d.wav" % (label,seq), 'wb')
+        wf = wave.open(DATA_DIR+"fixed_pitch/%s_%d.wav" % (label,seq), 'wb')
         wf.setnchannels(1)
         wf.setsampwidth(sample_width)
         wf.setframerate(RATE)
@@ -107,9 +107,9 @@ def record_to_file(label):
 if __name__ == '__main__':
     label = sys.argv[1]
     print "label: %s" % label
-    if (os.path.isfile("fixed-pitch/%s_0.wav" % label)):
+    if (os.path.isfile(DATA_DIR+"fixed_pitch/%s_0.wav" % label)):
         fund_freq, fs = getFundFreq(label, 0)
-        print "Listen, here's your pitch"
+        print "Listen, here's your pitch (%.1f Hz)" % fund_freq
         playNote(fund_freq, fs)
         print "Now duplicate it!"
         seq = record_to_file_full(label)
@@ -119,7 +119,7 @@ if __name__ == '__main__':
             print "Success, sample %s_%d saved" % (label, seq)
         else:
             print "Failure, sample not saved"
-            os.remove("/fixed-pitch/%s_%d.wav" % (label, seq))
+            os.remove(DATA_DIR+"fixed_pitch/%s_%d.wav" % (label, seq))
 
     else:
         print("New label! Please make a first recording.")

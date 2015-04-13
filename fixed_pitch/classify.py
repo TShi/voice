@@ -1,8 +1,8 @@
 from utils import *
 
 def get():
-	for filename in glob.glob("samples/*.wav"):
-		out_name = "spectra/"+filename[8:-4]
+	for filename in glob.glob(DATA_DIR+"fixed_pitch/*.wav"):
+		out_name = get_dataname(filename)
 		if os.path.isfile(out_name): continue
 		print filename
 		fs,y=scipy.io.wavfile.read(filename)
@@ -77,12 +77,12 @@ print "Preparing features"
 X = []
 y = []
 frequencies = []
-for filename in glob.glob("samples/*.wav"):
-	label = filename[12:-4]
+for filename in glob.glob(DATA_DIR+"fixed_pitch/*.wav"):
+	label = get_dataname(filename)
 	person,num = label.split("_")
 	features_group = []
 	persons_group = []
-	fs,signal=scipy.io.wavfile.read("samples/%s.wav" % label)
+	fs,signal=scipy.io.wavfile.read(DATA_DIR+"fixed_pitch/%s.wav" % label)
 	fund_freq = freq_from_autocorr(signal,fs)
 	print label,fund_freq
 	frequencies.append(fund_freq)
