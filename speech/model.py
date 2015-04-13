@@ -1,25 +1,36 @@
 from utils import *
 from sklearn import cross_validation
 from threading import Thread
+from sklearn import metrics
+
+TASK_NAME = "speech"
 
 class VoiceClassifier(object):
-	def __init__(self):
-		self.clf = SVC(probability=True)
+	def __init__(self,clf=SVC(probability=True),prob=True):
+		self.clf = clf
 		self.label_to_ind = dict()
+		self.prob = prob
 	def fit(self,X,y):
 		self.clf.fit(X,y)
 		self.label_to_ind = dict()
 		for i,l in enumerate(self.clf.classes_):
 			self.label_to_ind[l]=i
 	def predict(self,X):
-		pred = self.clf.predict(X)[0]
-		prob = self.clf.predict_proba(X)[0,self.label_to_ind[pred]]
+		pred = self.clf.predict(X)
+		all_prob = self.clf.predict_proba(X)
+		if self.prob:
+			pred_from_prob = np.argmax(all_prob,axis=1)
+			pred = map(self.clf.classes_.__getitem__, pred_from_prob)
+			prob = np.max(all_prob,axis=1)
+		else:
+			prob = []
+			for i in range(len(pred)):
+				prob.append(all_prob[i,self.label_to_ind[pred[i]]])
 		return (pred, prob)
 
-class VoiceManager(object):
-	def __init__(self):
-		self.load_from_disk()
-	def get_features(self,fs,signal):
+class FeatureExtractor(object):
+	@staticmethod
+	def get_features(fs,signal):
 		"""
 		Return (fund_freq, [features])
 		"""
@@ -30,16 +41,22 @@ class VoiceManager(object):
 		f_interp = interp1d(f, Pxx_den)
 		return (fund_freq,
 			   [np.log(1+f_interp(fund_freq*i)) for i in np.arange(1,20,0.5)])
+
+
+class VoiceManager(object):
+	def __init__(self,feature_extractor):
+		self.feature_extractor = feature_extractor
+		self.load_from_disk()
 	def load_from_disk(self):
 		self.X = []
 		self.y = []
 		self.labels = []
 		self.freqs = []
-		for filename in glob.glob(DATA_DIR+"speech/*.wav"):
+		for filename in glob.glob(DATA_DIR+TASK_NAME+"/*.wav"):
 			label = get_dataname(filename)
 			person,num = label.split("_")
-			fs,signal=scipy.io.wavfile.read(DATA_DIR+"speech/%s.wav" % label)
-			fund_freq,X = self.get_features(fs,signal)
+			fs,signal=scipy.io.wavfile.read(DATA_DIR+TASK_NAME+"/%s.wav" % label)
+			fund_freq,X = self.feature_extractor.get_features(fs,signal)
 			if not X:
 				print "Err: %s, %.1f" % (label,fund_freq)
 				continue
@@ -51,7 +68,7 @@ class VoiceManager(object):
 			self.y.append(person)
 	def add(self,fs,signal,label):
 		person,num = label.split("_")
-		fund_freq,features = self.get_features(fs,signal)
+		fund_freq,features = self.feature_extractor.get_features(fs,signal)
 		self.X.append(features)
 		self.y.append(person)
 		self.labels.append(label)
@@ -93,7 +110,7 @@ class Recorder(object):
 		num_silent = 0
 		snd_started = False
 		r = array('h')
-		# print "Go!"
+		print "Go!"
 		num_periods = 0
 		while 1:
 			# little endian, signed short
@@ -103,8 +120,8 @@ class Recorder(object):
 			# print np.mean(map(abs,snd_data)), is_silent(snd_data)
 			silent = self.is_silent(snd_data)
 			if silent and snd_started:
-				if num_periods <= 5 :
-					# print "Too short, resampling"
+				if num_periods <= RATE / CHUNK_SIZE / 2 * min_sec :
+					print "Too short, resampling"
 					snd_started = False
 					r = array('h')
 					num_periods = 0
@@ -118,9 +135,9 @@ class Recorder(object):
 				num_periods += 1
 				# print num_periods,len(r)
 			else: # sound just started
-				# print "Start recording"
+				print "Start recording"
 				snd_started = True
-		# print "Finish"
+		print "Finish"
 		r = r[:-CHUNK_SIZE]
 		stream.stop_stream()
 		stream.close()
@@ -129,15 +146,15 @@ class Recorder(object):
 		self.p.terminate()
 	def findmax(self,label):
 		largest = -1
-		for filename in glob.glob(DATA_DIR+"speech/%s_*.wav" % label):
-			largest = max(largest,int(re.findall(DATA_DIR+"speech/%s_(\d+).wav" % label,filename)[0]))
+		for filename in glob.glob(DATA_DIR+TASK_NAME+"/%s_*.wav" % label):
+			largest = max(largest,int(re.findall(DATA_DIR+TASK_NAME+"/%s_(\d+).wav" % label,filename)[0]))
 		return largest
 	def save(self,signal,label):
 		"Records from the microphone and outputs the resulting data to 'path'"
 		signal = pack('<' + ('h'*len(signal)), *signal)
 		next_id = self.findmax(label) + 1
 		recording_name = "%s_%d" % (label,next_id)
-		wf = wave.open(DATA_DIR+"speech/%s.wav" % recording_name, 'wb')
+		wf = wave.open(DATA_DIR+TASK_NAME+"/%s.wav" % recording_name, 'wb')
 		wf.setnchannels(1)
 		wf.setsampwidth(self.sample_width)
 		wf.setframerate(self.fs)
@@ -145,19 +162,67 @@ class Recorder(object):
 		wf.close()
 		return recording_name
 
+def cross_validate(data_manager,voice_clf,shuffle=False,n_folds=10,n_trials=1,verbose=0):
+	if n_trials > 1:
+		all_scores = []
+		for i in xrange(n_trials):
+			scores = cross_validate(data_manager,voice_clf,shuffle=shuffle,n_folds=n_folds)
+			if verbose >= 1: print "CV Trial %d: Mean Accuracy: %.3f" % (i,np.mean(scores))
+			all_scores += scores
+		if verbose >= 1: print "Mean Accuracy: %.3f" % np.mean(all_scores)
+		return all_scores
+	n = len(data_manager.y)
+	kf = cross_validation.KFold(n, shuffle=shuffle, n_folds=n_folds)
+	count = 1
+	accuracy_scores = []
+	accuracy_scores_2 = []
+	X,y = np.array(data_manager.X), np.array(data_manager.y)
+	for train_index, test_index in kf:
+		if verbose >= 2:
+			print "Cross Validating: %d/%d" % (count, n_folds),
+		X_train, X_test = X[train_index], X[test_index]
+		y_train, y_test = y[train_index], y[test_index]
+		voice_clf.fit(X_train,y_train)
+		y_pred,y_score = voice_clf.predict(X_test)
+		accuracy_score = metrics.accuracy_score(y_test,y_pred)
+		accuracy_scores.append(accuracy_score)
+		count += 1
+		if verbose >= 2:
+			print "Accuracy = %.3f" % accuracy_score
+	if verbose >= 1:
+		print "Mean Accuracy: %.3f" % np.mean(accuracy_scores)
+	return accuracy_scores
+
+voice_manager = VoiceManager(FeatureExtractor)
 
 
-voice_manager = VoiceManager()
-recorder = Recorder()
-voice_clf = VoiceClassifier()
-voice_clf.fit(*voice_manager.get_snapshot())
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
-while True:
-	signal = recorder.record()
-	fund_freq,X = voice_manager.get_features(recorder.fs,signal)
-	if not X:
-		print "what?"
-		continue
-	print voice_clf.predict(X)
+
+models = {
+	"LogisticReg": LogisticRegression(),
+	"SVM": SVC(probability=True),
+	"RandomForest": RandomForestClassifier(),
+	"GradientBoost": GradientBoostingClassifier(),
+	"AdaBoost": AdaBoostClassifier(),
+	"KNN": KNeighborsClassifier()
+}
+for model_name,model in models.iteritems():
+	voice_clf = VoiceClassifier(clf=model)
+	scores = cross_validate(voice_manager,voice_clf,shuffle=True,verbose=0,n_trials=10)
+	print "%s Accuracy: %.3f (%.3f)" % (model_name, np.mean(scores), np.std(scores))
+
+
+# while True:
+# 	signal = recorder.record()
+# 	fund_freq,X = voice_manager.get_features(recorder.fs,signal)
+# 	if not X:
+# 		print "what?"
+# 		continue
+# 	print voice_clf.predict(X)
 
 
