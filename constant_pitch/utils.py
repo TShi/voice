@@ -28,7 +28,7 @@ RATE = 44100
 
 F_RANGE = np.arange(0, 5000)
 
-DATA_DIR = "samples/"
+DATA_DIR = "../samples/"
 
 
 def flatten(l): return [item for sublist in l for item in sublist]

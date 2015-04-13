@@ -80,7 +80,7 @@ def record_to_file_full(label):
 	sample_width, data = record()
 	data = pack('<' + ('h'*len(data)), *data)
 	seq = findmax(label) + 1
-	wf = wave.open("speech/%s_%d.wav" % (label,seq), 'wb')
+	wf = wave.open(DATA_DIR+"speech/%s_%d.wav" % (label,seq), 'wb')
 	wf.setnchannels(1)
 	wf.setsampwidth(sample_width)
 	wf.setframerate(RATE)
@@ -93,7 +93,7 @@ def record_to_file(label):
 	data = pack('<' + ('h'*len(data)), *data)
 	seq = findmax(label) + 1
 	for data_chunk in chunks(data,RATE * 1): # 1s chunks
-		wf = wave.open("speech/%s_%d.wav" % (label,seq), 'wb')
+		wf = wave.open(DATA_DIR+"speech/%s_%d.wav" % (label,seq), 'wb')
 		wf.setnchannels(1)
 		wf.setsampwidth(sample_width)
 		wf.setframerate(RATE)
