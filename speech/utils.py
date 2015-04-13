@@ -28,7 +28,7 @@ RATE = 44100
 
 F_RANGE = np.arange(0, 5000)
 
-DATA_DIR = "../../samples/"
+DATA_DIR = "samples/"
 
 def play_tone(frequency, amplitude, duration, fs, stream):
     N = int(fs / frequency)

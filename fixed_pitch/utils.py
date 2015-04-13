@@ -28,7 +28,7 @@ RATE = 44100
 
 F_RANGE = np.arange(0, 5000)
 
-DATA_DIR = "../../samples/"
+DATA_DIR = "samples/"
 
 def play_tone(frequency, amplitude, duration, fs, stream):
     N = int(fs / frequency)
@@ -52,7 +52,7 @@ def playNote(freq, fs):
 
 
 def getFundFreq(label, index):
-    fs, signal = scipy.io.wavfile.read("fixed-pitch/%s_%d.wav"
+    fs, signal = scipy.io.wavfile.read(DATA_DIR+"fixed_pitch/%s_%d.wav"
                                        % (label, index))
     fund_freq = freq_from_autocorr(signal, fs)
     return fund_freq, fs
