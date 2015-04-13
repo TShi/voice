@@ -54,8 +54,10 @@ def get_features_2(fs,signal):
 
 def get_features_20(fs,signal):
 	fund_freq = freq_from_autocorr(signal,fs)
-	# fund_freq_2 = freq_from_fft(y,fs)
-	# okay = fund_freq < fund_freq_2 * 1.2 and fund_freq_2 < fund_freq * 1.2
+	fund_freq_2 = freq_from_fft(signal,fs)
+	okay = fund_freq < fund_freq_2 * 1.2 and fund_freq_2 < fund_freq * 1.2
+	print "%s\t%.1f\t%.1f\t%s" % (label,fund_freq, fund_freq_2,
+		"" if okay else "<---")
 	f,Pxx_den=scipy.signal.periodogram(signal,fs=fs)
 	f_interp = interp1d(f, Pxx_den)
 	features = [np.log(fund_freq)]

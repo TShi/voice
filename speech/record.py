@@ -71,8 +71,8 @@ def record():
 
 def findmax(label):
 	largest = -1
-	for filename in glob.glob("speech/%s_*.wav" % label):
-		largest = max(largest,int(re.findall("speech/%s_(\d+).wav" % label,filename)[0]))
+	for filename in glob.glob(DATA_DIR+"speech/%s_*.wav" % label):
+		largest = max(largest,int(re.findall(DATA_DIR+"speech/%s_(\d+).wav" % label,filename)[0]))
 	return largest
 
 def record_to_file_full(label):
