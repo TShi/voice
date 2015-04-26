@@ -110,7 +110,7 @@ class Recorder(object):
 		num_silent = 0
 		snd_started = False
 		r = array('h')
-		# print "Go!"
+		print "Go!"
 		num_periods = 0
 		while 1:
 			# little endian, signed short
@@ -120,8 +120,8 @@ class Recorder(object):
 			# print np.mean(map(abs,snd_data)), is_silent(snd_data)
 			silent = self.is_silent(snd_data)
 			if silent and snd_started:
-				if num_periods <= 5 :
-					# print "Too short, resampling"
+				if num_periods <= RATE / CHUNK_SIZE / 2 * min_sec :
+					print "Too short, resampling"
 					snd_started = False
 					r = array('h')
 					num_periods = 0
@@ -135,9 +135,9 @@ class Recorder(object):
 				num_periods += 1
 				# print num_periods,len(r)
 			else: # sound just started
-				# print "Start recording"
+				print "Start recording"
 				snd_started = True
-		# print "Finish"
+		print "Finish"
 		r = r[:-CHUNK_SIZE]
 		stream.stop_stream()
 		stream.close()
@@ -164,83 +164,65 @@ class Recorder(object):
 
 def cross_validate(data_manager,voice_clf,shuffle=False,n_folds=10,n_trials=1,verbose=0):
 	if n_trials > 1:
-		all_train_scores,all_test_scores = [],[]
+		all_scores = []
 		for i in xrange(n_trials):
-			train_scores, test_scores = cross_validate(
-				data_manager,voice_clf,shuffle=shuffle,n_folds=n_folds)
-			if verbose >= 1:
-				print "CV Trial %d: Train %.3f, Test %.3f" % (
-					i,np.mean(train_scores),np.mean(test_scores))
-			all_train_scores += train_scores
-			all_test_scores += test_scores
-		if verbose >= 1:
-			print "Mean Accuracy: Train %.3f, Test %.3f" % (
-					np.mean(all_train_scores),np.mean(all_test_scores))
-		return all_train_scores,all_test_scores
+			scores = cross_validate(data_manager,voice_clf,shuffle=shuffle,n_folds=n_folds)
+			if verbose >= 1: print "CV Trial %d: Mean Accuracy: %.3f" % (i,np.mean(scores))
+			all_scores += scores
+		if verbose >= 1: print "Mean Accuracy: %.3f" % np.mean(all_scores)
+		return all_scores
 	n = len(data_manager.y)
 	kf = cross_validation.KFold(n, shuffle=shuffle, n_folds=n_folds)
-	count = 0
-	train_scores,test_scores = [],[]
+	count = 1
+	accuracy_scores = []
+	accuracy_scores_2 = []
 	X,y = np.array(data_manager.X), np.array(data_manager.y)
 	for train_index, test_index in kf:
+		if verbose >= 2:
+			print "Cross Validating: %d/%d" % (count, n_folds),
 		X_train, X_test = X[train_index], X[test_index]
 		y_train, y_test = y[train_index], y[test_index]
 		voice_clf.fit(X_train,y_train)
-		y_pred,y_score = voice_clf.predict(X_train)
-		train_score = metrics.accuracy_score(y_train,y_pred)
-		train_scores.append(train_score)
 		y_pred,y_score = voice_clf.predict(X_test)
-		test_score = metrics.accuracy_score(y_test,y_pred)
-		test_scores.append(test_score)
+		accuracy_score = metrics.accuracy_score(y_test,y_pred)
+		accuracy_scores.append(accuracy_score)
 		count += 1
 		if verbose >= 2:
-			print "CV Fold %d: Train %.3f, Test %.3f" % (
-					count,train_score,test_score)
+			print "Accuracy = %.3f" % accuracy_score
 	if verbose >= 1:
-		print "Mean Accuracy: Train %.3f, Test %.3f" % (
-					np.mean(train_scores),np.mean(test_scores))
-	return train_scores,test_scores
+		print "Mean Accuracy: %.3f" % np.mean(accuracy_scores)
+	return accuracy_scores
 
-recorder = Recorder()
 voice_manager = VoiceManager(FeatureExtractor)
 
-voice_clf = VoiceClassifier()
-voice_clf.fit(*voice_manager.get_snapshot())
 
-# from sklearn.linear_model import LogisticRegression
-# from sklearn.ensemble import RandomForestClassifier
-# from sklearn.ensemble import GradientBoostingClassifier
-# from sklearn.ensemble import AdaBoostClassifier
-# from sklearn.ensemble import BaggingClassifier
-# from sklearn.neighbors import KNeighborsClassifier
-
-# models = {
-# 	"SVM": SVC(probability=True),
-# 	"KNN": KNeighborsClassifier(),
-# 	"GradientBoost": GradientBoostingClassifier(),
-# 	"RandomForest": RandomForestClassifier(),
-# 	"Bagging": BaggingClassifier(),
-# 	"LogisticReg": LogisticRegression(),
-# 	"AdaBoost": AdaBoostClassifier()
-# }
-
-# print "Model & Train & Test \\\\"
-# for model_name,model in models.iteritems():
-# 	voice_clf = VoiceClassifier(clf=model)
-# 	train_scores,test_scores = cross_validate(voice_manager,voice_clf,shuffle=True,verbose=0,n_trials=5)
-# 	print "%s & %.3f (%.3f) & %.3f (%.3f) \\\\" % (
-# 		model_name, np.mean(train_scores), np.std(train_scores),
-# 		np.mean(test_scores), np.std(test_scores)
-# 		)
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 
+models = {
+	"LogisticReg": LogisticRegression(),
+	"SVM": SVC(probability=True),
+	"RandomForest": RandomForestClassifier(),
+	"GradientBoost": GradientBoostingClassifier(),
+	"AdaBoost": AdaBoostClassifier(),
+	"KNN": KNeighborsClassifier()
+}
+for model_name,model in models.iteritems():
+	voice_clf = VoiceClassifier(clf=model)
+	scores = cross_validate(voice_manager,voice_clf,shuffle=True,verbose=0,n_trials=10)
+	print "%s Accuracy: %.3f (%.3f)" % (model_name, np.mean(scores), np.std(scores))
 
-while True:
-	signal = recorder.record()
-	fund_freq,X = FeatureExtractor.get_features(recorder.fs,signal)
-	if not X:
-		print "what?"
-		continue
-	print voice_clf.predict(X)
+
+# while True:
+# 	signal = recorder.record()
+# 	fund_freq,X = voice_manager.get_features(recorder.fs,signal)
+# 	if not X:
+# 		print "what?"
+# 		continue
+# 	print voice_clf.predict(X)
 
 
