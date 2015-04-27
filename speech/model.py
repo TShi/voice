@@ -27,6 +27,10 @@ class VoiceClassifier(object):
 			for i in range(len(pred)):
 				prob.append(all_prob[i,self.label_to_ind[pred[i]]])
 		return (pred, prob)
+	def get_classes(self):
+		return self.clf.classes_
+	def predict_proba(self,X):
+		return self.clf.predict_proba(X)
 
 class FeatureExtractor(object):
 	@staticmethod
@@ -81,7 +85,8 @@ class VoiceManager(object):
 
 
 class Recorder(object):
-	def __init__(self):
+	def __init__(self,try_once=False):
+		self.try_once = try_once
 		self.p = pyaudio.PyAudio()
 		self.threshold = 500
 		self.chunk_size = 1024
@@ -99,7 +104,7 @@ class Recorder(object):
 		for i in snd_data:
 			r.append(int(i*times))
 		return r
-	def record(self,min_sec=2.):
+	def record(self,min_sec=0.05):
 		"""
 		Record a word or words from the microphone and 
 		return the data as an array of signed shorts.
@@ -122,6 +127,7 @@ class Recorder(object):
 			if silent and snd_started:
 				if num_periods <= RATE / CHUNK_SIZE / 2 * min_sec :
 					print "Too short, resampling"
+					if self.try_once: return
 					snd_started = False
 					r = array('h')
 					num_periods = 0
@@ -193,36 +199,5 @@ def cross_validate(data_manager,voice_clf,shuffle=False,n_folds=10,n_trials=1,ve
 		print "Mean Accuracy: %.3f" % np.mean(accuracy_scores)
 	return accuracy_scores
 
-voice_manager = VoiceManager(FeatureExtractor)
-
-
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.neighbors import KNeighborsClassifier
-
-
-models = {
-	"LogisticReg": LogisticRegression(),
-	"SVM": SVC(probability=True),
-	"RandomForest": RandomForestClassifier(),
-	"GradientBoost": GradientBoostingClassifier(),
-	"AdaBoost": AdaBoostClassifier(),
-	"KNN": KNeighborsClassifier()
-}
-for model_name,model in models.iteritems():
-	voice_clf = VoiceClassifier(clf=model)
-	scores = cross_validate(voice_manager,voice_clf,shuffle=True,verbose=0,n_trials=10)
-	print "%s Accuracy: %.3f (%.3f)" % (model_name, np.mean(scores), np.std(scores))
-
-
-# while True:
-# 	signal = recorder.record()
-# 	fund_freq,X = voice_manager.get_features(recorder.fs,signal)
-# 	if not X:
-# 		print "what?"
-# 		continue
-# 	print voice_clf.predict(X)
 
 
